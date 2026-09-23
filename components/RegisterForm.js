@@ -3,41 +3,50 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function LoginForm() {
+export default function RegisterForm() {
   const router = useRouter();
 
+  const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
 
-  async function iniciarSesion(e) {
+  async function registrar(e) {
     e.preventDefault();
     setError("");
 
-    if (!email || !password) {
-      setError("Completa correo y contraseña.");
+    if (!nombre || !email || !password) {
+      setError("Completa todos los campos.");
       return;
     }
 
     setCargando(true);
 
-    const res = await fetch("/api/auth/login", {
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nombre, email, password }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      setCargando(false);
+      setError(data.error || "No se pudo crear la cuenta.");
+      return;
+    }
+
+    const loginRes = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
 
-    const data = await res.json();
     setCargando(false);
 
-    if (!res.ok) {
-      setError(data.error || "No se pudo iniciar sesión.");
-      return;
-    }
-
-    if (data.usuario.rol !== "cliente") {
-      setError("Esta cuenta no es de cliente. Usa el acceso de administrador.");
+    if (!loginRes.ok) {
+      router.push("/login");
       return;
     }
 
@@ -46,7 +55,13 @@ export default function LoginForm() {
   }
 
   return (
-    <form onSubmit={iniciarSesion} className="login-form">
+    <form onSubmit={registrar} className="login-form">
+      <input
+        placeholder="Nombre"
+        value={nombre}
+        onChange={(e) => setNombre(e.target.value)}
+      />
+
       <input
         type="email"
         placeholder="Correo electrónico"
@@ -56,7 +71,7 @@ export default function LoginForm() {
 
       <input
         type="password"
-        placeholder="Contraseña"
+        placeholder="Contraseña (mínimo 6 caracteres)"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
@@ -64,7 +79,7 @@ export default function LoginForm() {
       {error && <p className="error-texto">{error}</p>}
 
       <button disabled={cargando}>
-        {cargando ? "Ingresando..." : "Ingresar"}
+        {cargando ? "Creando cuenta..." : "Crear cuenta"}
       </button>
     </form>
   );

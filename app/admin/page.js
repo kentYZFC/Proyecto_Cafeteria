@@ -1,113 +1,74 @@
 "use client";
 
-import {
-  useState
-} from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Navbar from "@/components/Navbar";
 
-import Navbar
-from "@/components/Navbar";
+export default function Admin() {
+  const router = useRouter();
 
-import AdminPanel
-from "@/components/AdminPanel";
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [cargando, setCargando] = useState(false);
 
-export default function Admin(){
+  async function ingresar(e) {
+    e.preventDefault();
+    setError("");
+    setCargando(true);
 
-  const [
-    usuario,
-    setUsuario
-  ] = useState("");
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
 
-  const [
-    password,
-    setPassword
-  ] = useState("");
+    const data = await res.json();
+    setCargando(false);
 
-  const [
-    autorizado,
-    setAutorizado
-  ] = useState(false);
-
-  function ingresar(){
-
-    if(
-      usuario === "admin"
-      &&
-      password === "1234"
-    ){
-
-      setAutorizado(
-        true
-      );
-
+    if (!res.ok) {
+      setError(data.error || "No se pudo iniciar sesión.");
+      return;
     }
 
-    else{
-
-      alert(
-        "Credenciales incorrectas"
-      );
+    if (data.usuario.rol !== "admin") {
+      setError("Esta cuenta no tiene permisos de administrador.");
+      return;
     }
+
+    router.push("/admin/panel");
+    router.refresh();
   }
 
   return (
-
     <>
-
       <Navbar />
 
-      {
-        !autorizado ?
+      <div className="contenedor">
+        <h1>Login Admin</h1>
 
-        (
+        <form onSubmit={ingresar} className="login-form">
+          <input
+            type="email"
+            placeholder="Correo electrónico"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
 
-          <div
-            className="contenedor"
-          >
+          <input
+            type="password"
+            placeholder="Contraseña"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
 
-            <h1>
-              Login Admin
-            </h1>
+          {error && <p className="error-texto">{error}</p>}
 
-            <input
-              placeholder="Usuario"
-              value={usuario}
-              onChange={(e)=>
-                setUsuario(
-                  e.target.value
-                )
-              }
-            />
-
-            <input
-              type="password"
-              placeholder="Contraseña"
-              value={password}
-              onChange={(e)=>
-                setPassword(
-                  e.target.value
-                )
-              }
-            />
-
-            <button
-              onClick={
-                ingresar
-              }
-            >
-              Entrar
-            </button>
-
-          </div>
-
-        )
-
-        :
-
-        <AdminPanel />
-
-      }
-
+          <button disabled={cargando}>
+            {cargando ? "Ingresando..." : "Entrar"}
+          </button>
+        </form>
+      </div>
     </>
-
   );
 }
